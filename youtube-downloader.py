@@ -194,9 +194,9 @@ try:
         elif sys.argv[1] == "m": # music 
             downloadMusic((sys.argv[2])) # pass URL from console to function
 except: 
-    print(colored('Something went wrong...', 'red'))
-    print(colored('Closing...', 'red'))
-    exit()
+    print(colored('Something went wrong...', 'red')) # status
+    print(colored('Closing...', 'red')) # status
+    exit() # close the script
 
 
 # ----------- fun ends here ---------- #
@@ -204,5 +204,5 @@ except:
 # ------------- run time ------------- #
 
 endTime = time.time()  # run time end
-totalRunTime = round(endTime-startTime, 2)
-print(f"Total script run time: {totalRunTime} seconds. That's {round(totalRunTime/60,2)} minutes.")
+totalRunTime = round(endTime-startTime, 2) # round to 0.xx
+print(f"Total script run time: {totalRunTime} seconds. That's {round(totalRunTime/60,2)} minutes.") # status
