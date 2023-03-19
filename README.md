@@ -24,6 +24,7 @@
 
 ## Release History
 
+- 0.2: Added Windows and macOS notifications; fixed script not working when URL had whitespaces.
 - 0.1: Initial, fully functioning release.
 
 <!-- <details> -->
@@ -50,6 +51,9 @@ Using [SemVer](http://semver.org/).
 
 - [yt-dlp](https://pypi.org/project/yt-dlp/) to download videos
 - [ChatGPT](https://chat.openai.com/chat)
+- Notifications on Windows: [plyer](https://pypi.org/project/plyer/)
+- Notifications on macOS: [pync](https://github.com/SeTeM/pync)
+- Icons from [Flaticon](https://www.flaticon.com)
 
 ## Contributing
 

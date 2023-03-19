@@ -8,12 +8,20 @@
 import yt_dlp  # download YouTube videos # NOTE: https://github.com/ytdl-org/youtube-dl/issues/30102#issuecomment-943849906
 import sys # take arguments from console
 
+# ----------- notifications ---------- #
+
+from sys import platform  # check platform (Windows/macOS)
+if platform == "darwin":
+    import pync  # macOS notifications
+elif platform == 'win32':
+    from plyer import notification  # Windows notification
+
 # other ↓
 import time  # calculate script's run time
+from inputimeout import inputimeout, TimeoutOccurred # input timeout: https://pypi.org/project/inputimeout/
 
 # certificate problem solution ↓
 # NOTE: fix certificate issue -> https://stackoverflow.com/questions/28282797/feedparser-parse-ssl-certificate-verify-failed
-import platform # check what OS user is using 
 if platform == 'darwin':  # check if user is using macOS
     import ssl
     if hasattr(ssl, '_create_unverified_context'):
@@ -26,15 +34,29 @@ print("Starting the script...")  # status
 
 # ---------- fun begins here --------- #
 
+# --- function to send notification -- #
+
+def sendNotification(kind): # FIX: doesn't work
+    if platform == "darwin":
+        pync.notify(f'{kind} downloaded. Enjoy!', title='youtube-downloader', subtitle='',
+                    open="", sound="", contentImage="icons/download.png")
+    elif platform == "win32":
+        notification.notify(
+            title='youtube-downloader',
+            message=f'{kind} downloaded. Enjoy!',
+            app_icon='icons/download.ico')
+    
 # ----- functions for downloading ---- #
 
 # download video
 def downloadVideo(videoURL):
+    
+    videoURL = videoURL.strip() # remove whitespaces
 
     # different location for different OSes
-    if platform.system() == 'Windows': # Windows
+    if platform == "win32": # Windows
         downloadPath = r'C:/Users/x/Videos/TV Shows/Downloaded from YouTube' # download location
-    # elif platform.system() == 'Darwin': # macOS 
+    # elif platform == "darwin": # macOS 
     #     downloadPath = r'/Users/q/Downloads/Downloaded from YouTube/' # download location
 
     #  parameters for the downloader
@@ -72,7 +94,8 @@ def downloadVideo(videoURL):
 
             print("Downloading the video from YouTube...")  # status
             YouTubeDownloader.download(videoURL)  # now download the video
-            print("Video downloaded.")  # status
+            sendNotification('Video') # send notification
+            print("Video downloaded. Enjoy!")  # status
             # TODO: how to check if downloading or already on disk?
     except:  # Internet down, wrong URL
         # status
@@ -83,10 +106,12 @@ def downloadMusic(videoURL):
     
     # NOTE: ffmpeg (+ffprobe) must be downloaded from https://www.gyan.dev/ffmpeg/builds/ and added to PATH
     
+    videoURL = videoURL.strip() # remove whitespaces
+    
     # different location for different OSes
-    if platform.system() == 'Windows': # Windows
+    if platform == "win32": # Windows
         downloadPath = r'C:/Users/x/Downloads/' # download location
-    # elif platform.system() == 'Darwin': # macOS 
+    # elif platform == "darwin": # macOS 
         # downloadPath = r'/Users/q/Downloads/Downloaded from YouTube/' # download location
     
     # parameters for the downloader
@@ -105,6 +130,7 @@ def downloadMusic(videoURL):
         with yt_dlp.YoutubeDL(optionalParameters) as YouTubeDownloader:
             print("Downloading the video from YouTube and then doing some magic to extract the music. It can take a while...") # status
             YouTubeDownloader.download(videoURL) # now download the music
+            sendNotification('Music') # send notification
             print("Music extracted and file saved. Enjoy!") # status
     except: # Internet down, wrong URL
         # status
@@ -121,7 +147,8 @@ def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call 
         videoURL = videoURL
     else: # but if we don't pass a parameter then we need to get it 
         print("Paste YouTube video URL: ")
-        videoURL = input() # ask user for URL
+        # TODO: auto-approve URL without user hitting "Enter"
+        videoURL = input() # ask user for URL # TODO: color green
         
     counter = 1 # reset the counter
     # check if URL is a YouTube URL and give user 3 chances to put a correct URL
@@ -130,17 +157,21 @@ def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call 
         and "youtu.be" not in videoURL
         and counter < 3
     ):
-        print("That URL is not a YouTube one. Try again...")
+        print("That URL is not a YouTube one. Try again...") # TODO: color red
         videoURL = input() # ask user for URL
         counter += 1 # increase the counter
     if counter == 3: # if user still can't paste a YouTube URL then close the script
-        print("Duh...")
+        print("Duh...") # TODO: color red
         exit()
     
     # ---------- get parameters ---------- #
     
-    print("Do you want to download the video (v) or extract the music (m)?")
-    userChoice = input() # ask user
+    # print("Do you want to download the video (v) or extract the music (m)?")
+    try: 
+        # userChoice = input() # ask user
+        userChoice = inputimeout(prompt="Do you want to download the video (v; default after 15 secs) or extract the music (m)?\n", timeout=15) # ask user, give them 15 seconds to decide # TODO: color
+    except TimeoutOccurred: # time ran out
+        userChoice = "v" # default = video
     if userChoice == "v": 
         downloadVideo(videoURL) # download video
     elif userChoice == "m": 
@@ -155,7 +186,7 @@ try:
         print("No video URL found at launch.")
         helpTheUser() # we don't have anything so let's call the function and get the URL and arguments 
     elif len(sys.argv) == 2:
-        print("Arguments were not passed.")
+        print("v/m argument was not passed.")
         helpTheUser(sys.argv[1]) # send what we have ie. URL to function and get the rest ie. arguments 
     elif len(sys.argv) == 3: # we have everything so let's go; 3=2 so 2 arguments, eg. m URL => m for music and URL = YouTube URL; eg. `python youtube-downloader.py m "https://youtube.com/XXXXXX"`
         # "decode" the arguments
