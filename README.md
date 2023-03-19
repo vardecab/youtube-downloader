@@ -24,6 +24,7 @@
 
 ## Release History
 
+- 0.3: Added colored output in terminal.
 - 0.2: Added Windows and macOS notifications; fixed script not working when URL had whitespaces.
 - 0.1: Initial, fully functioning release.
 

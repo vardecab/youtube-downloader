@@ -19,6 +19,7 @@ elif platform == 'win32':
 # other ↓
 import time  # calculate script's run time
 from inputimeout import inputimeout, TimeoutOccurred # input timeout: https://pypi.org/project/inputimeout/
+from termcolor import colored # colored output in terminal 
 
 # certificate problem solution ↓
 # NOTE: fix certificate issue -> https://stackoverflow.com/questions/28282797/feedparser-parse-ssl-certificate-verify-failed
@@ -92,14 +93,14 @@ def downloadVideo(videoURL):
         with yt_dlp.YoutubeDL(optionalParameters) as YouTubeDownloader:
             # videoInfo = YouTubeDownloader.extract_info(videoURL, download=False) # get info (title, metadata, etc.) about the video without downloading
 
-            print("Downloading the video from YouTube...")  # status
+            print(colored("Downloading the video from YouTube...", 'green'))  # status
             YouTubeDownloader.download(videoURL)  # now download the video
             sendNotification('Video') # send notification
-            print("Video downloaded. Enjoy!")  # status
+            print(colored("Video downloaded. Enjoy!", 'green'))  # status
             # TODO: how to check if downloading or already on disk?
     except:  # Internet down, wrong URL
         # status
-        print(f"Can't download the video. Check your internet connection and video's URL ({videoURL}), then try again. Closing...")
+        print(colored(f"Can't download the video. Check your internet connection and video's URL ({videoURL}), then try again. Closing...", 'red'))
         
 # download music
 def downloadMusic(videoURL):
@@ -128,13 +129,13 @@ def downloadMusic(videoURL):
     }
     try:
         with yt_dlp.YoutubeDL(optionalParameters) as YouTubeDownloader:
-            print("Downloading the video from YouTube and then doing some magic to extract the music. It can take a while...") # status
+            print(colored("Downloading the video from YouTube and then doing some magic to extract the music. It can take a while...", 'green')) # status
             YouTubeDownloader.download(videoURL) # now download the music
             sendNotification('Music') # send notification
-            print("Music extracted and file saved. Enjoy!") # status
+            print(colored("Music extracted and file saved. Enjoy!", 'green')) # status
     except: # Internet down, wrong URL
         # status
-        print(f"Can't download the music. Check your internet connection and video's URL ({videoURL}), then try again. Closing...")
+        print(colored(f"Can't download the music. Check your internet connection and video's URL ({videoURL}), then try again. Closing...", 'red'))
             
 # ------ playing with arguments ------ #
 
@@ -146,9 +147,9 @@ def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call 
     if videoURL is not None: # if we pass a parameter then we are good 
         videoURL = videoURL
     else: # but if we don't pass a parameter then we need to get it 
-        print("Paste YouTube video URL: ")
         # TODO: auto-approve URL without user hitting "Enter"
-        videoURL = input() # ask user for URL # TODO: color green
+        askForVideoURLprompt = "Paste YouTube video URL: " # ask user for URL
+        videoURL = input(colored(askForVideoURLprompt, 'blue'))
         
     counter = 1 # reset the counter
     # check if URL is a YouTube URL and give user 3 chances to put a correct URL
@@ -157,19 +158,17 @@ def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call 
         and "youtu.be" not in videoURL
         and counter < 3
     ):
-        print("That URL is not a YouTube one. Try again...") # TODO: color red
-        videoURL = input() # ask user for URL
+        videoURL = input(colored("That URL is not a YouTube one. Try again: ", 'red')) # ask user for URL
         counter += 1 # increase the counter
-    if counter == 3: # if user still can't paste a YouTube URL then close the script
-        print("Duh...") # TODO: color red
+    if counter == 4: # if user still can't paste a YouTube URL then close the script
+        print(colored("Duh... Couldn't get the URL, closing...", 'red'))
         exit()
     
     # ---------- get parameters ---------- #
     
-    # print("Do you want to download the video (v) or extract the music (m)?")
     try: 
         # userChoice = input() # ask user
-        userChoice = inputimeout(prompt="Do you want to download the video (v; default after 15 secs) or extract the music (m)?\n", timeout=15) # ask user, give them 15 seconds to decide # TODO: color
+        userChoice = inputimeout(colored("Do you want to download the video (v; default after 15 secs) or extract the music (m)?\n", 'blue'), timeout=15) # ask user, give them 15 seconds to decide 
     except TimeoutOccurred: # time ran out
         userChoice = "v" # default = video
     if userChoice == "v": 
@@ -183,11 +182,11 @@ def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call 
 
 try: 
     if len(sys.argv) == 1:
-        print("No video URL found at launch.")
-        helpTheUser() # we don't have anything so let's call the function and get the URL and arguments 
+        print(colored("No video URL found at launch.", 'red'))
+        result = helpTheUser() # we don't have anything so let's call the function and get the URL and arguments 
     elif len(sys.argv) == 2:
-        print("v/m argument was not passed.")
-        helpTheUser(sys.argv[1]) # send what we have ie. URL to function and get the rest ie. arguments 
+        print(colored("v/m argument was not passed.", 'red'))
+        result= helpTheUser(sys.argv[1]) # send what we have ie. URL to function and get the rest ie. arguments 
     elif len(sys.argv) == 3: # we have everything so let's go; 3=2 so 2 arguments, eg. m URL => m for music and URL = YouTube URL; eg. `python youtube-downloader.py m "https://youtube.com/XXXXXX"`
         # "decode" the arguments
         if sys.argv[1] == "v": # video
@@ -195,9 +194,10 @@ try:
         elif sys.argv[1] == "m": # music 
             downloadMusic((sys.argv[2])) # pass URL from console to function
 except: 
-    print('Something went wrong...')
-    print('Closing...')
+    print(colored('Something went wrong...', 'red'))
+    print(colored('Closing...', 'red'))
     exit()
+
 
 # ----------- fun ends here ---------- #
 
