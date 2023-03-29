@@ -20,6 +20,7 @@ elif platform == 'win32':
 import time  # calculate script's run time
 from inputimeout import inputimeout, TimeoutOccurred # input timeout: https://pypi.org/project/inputimeout/
 from termcolor import colored # colored output in terminal 
+import pyperclip # take data from user's clipboard
 
 # certificate problem solution ↓
 # NOTE: fix certificate issue -> https://stackoverflow.com/questions/28282797/feedparser-parse-ssl-certificate-verify-failed
@@ -37,7 +38,7 @@ print("Starting the script...")  # status
 
 # --- function to send notification -- #
 
-def sendNotification(kind): 
+def sendNotification(kind): # kind = music/video
     if platform == "darwin":
         pync.notify(f'{kind} downloaded. Enjoy!', title='youtube-downloader', subtitle='',
                     open="", sound="", contentImage="icons/download.png")
@@ -142,7 +143,15 @@ def downloadMusic(videoURL):
         # status
         print(colored(f"Can't download the music. Check your internet connection and video's URL ({videoURL}), then try again. Closing...", 'red'))
             
-# ------ playing with arguments ------ #    
+# ------ playing with arguments ------ #
+
+def takeFromClipboard():    
+    clipboardData = pyperclip.paste() # take last item in user's clipboard
+
+    if "youtube" in clipboardData or "youtu.be" in clipboardData: # check if user has what we need
+        return clipboardData # return so we can use it
+    else: # if not
+        return 7 # return random number ¯\_(ツ)_/¯
     
 # get the URL & arguments if we don't have them (likely scenario if launched from .exe vs as a script in Terminal)
 def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call it without a parameter 
@@ -152,22 +161,27 @@ def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call 
     if videoURL is not None: # if we pass a parameter then we are good 
         videoURL = videoURL
     else: # but if we don't pass a parameter then we need to get it 
-        # TODO: auto-approve URL without user hitting "Enter"
-        askForVideoURLprompt = "Paste YouTube video URL: " # ask user for URL
-        videoURL = input(colored(askForVideoURLprompt, 'blue'))
-        
-    counter = 1 # reset the counter
-    # check if URL is a YouTube URL and give user 3 chances to put a correct URL
-    while (
-        "youtube" not in videoURL
-        and "youtu.be" not in videoURL
-        and counter < 3
-    ):
-        videoURL = input(colored("That URL is not a YouTube one. Try again: ", 'red')) # ask user for URL
-        counter += 1 # increase the counter
-    if counter == 4: # if user still can't paste a YouTube URL then close the script
-        print(colored("Duh... Couldn't get the URL, closing...", 'red'))
-        exit()
+        clipboardData = takeFromClipboard() # let's take what's in clipboard
+        if not clipboardData == 7: # ok, looks like a YouTube URL, let's use it
+            print(colored(f"Taking URL from clipboard: {clipboardData} ", 'green')) # status
+            videoURL = clipboardData # use URL from clipboard as our video
+        else: # no YouTube URL in user's clipboard, let's ask for it
+            print(colored("Couldnt' find YouTube URL in clipboard.", 'red')) # status
+            askForVideoURLprompt = "Paste YouTube video URL: " # ask user for URL
+            videoURL = input(colored(askForVideoURLprompt, 'blue'))
+            
+            counter = 1 # reset the counter
+            # check if URL is a YouTube URL and give user 3 chances to put a correct URL
+            while (
+                "youtube" not in videoURL
+                and "youtu.be" not in videoURL
+                and counter < 3
+            ):
+                videoURL = input(colored("That URL is not a YouTube one. Try again: ", 'red')) # ask user for URL
+                counter += 1 # increase the counter
+            if counter == 4: # if user still can't paste a YouTube URL then close the script
+                print(colored("Duh... Couldn't get the URL, closing...", 'red'))
+                exit()
     
     # ---------- get parameters ---------- #
     
@@ -204,7 +218,6 @@ if __name__ == "__main__": # code below only executed when launched directly, co
         print(colored('Something went wrong...', 'red')) # status
         print(colored('Closing...', 'red')) # status
         exit() # close the script
-
 
     # ----------- fun ends here ---------- #
 

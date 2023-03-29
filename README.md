@@ -24,6 +24,7 @@
 
 ## Release History
 
+- 0.5: Taking video URL from clipboard if there is one.
 - 0.4: Started integration w/ my other project: [web-youtube-downloader](https://github.com/vardecab/web-youtube-downloader); new videos will be downloaded to folders named after YouTube's channel name.
 - 0.3: Added colored output in terminal.
 - 0.2: Added Windows and macOS notifications; fixed script not working when URL had whitespaces.
@@ -52,10 +53,13 @@ Using [SemVer](http://semver.org/).
 ## Acknowledgements
 
 - [yt-dlp](https://pypi.org/project/yt-dlp/) to download videos
-- [ChatGPT](https://chat.openai.com/chat)
-- Notifications on Windows: [plyer](https://pypi.org/project/plyer/)
-- Notifications on macOS: [pync](https://github.com/SeTeM/pync)
-- Icons from [Flaticon](https://www.flaticon.com)
+- [ChatGPT](https://chat.openai.com/chat) for brainstorming
+- [plyer](https://pypi.org/project/plyer/) for notifications on Windows
+- [pync](https://github.com/SeTeM/pync) for notifications on macOS
+- [pyperclip](https://pypi.org/project/pyperclip/) to use user's clipboard
+- [termcolor](https://pypi.org/project/termcolor/) to have colors in terminal
+- [inputimeout ](https://pypi.org/project/inputimeout/) to auto-advance without user's input
+- [Flaticon](https://www.flaticon.com) for icons
 
 ## Contributing
 
