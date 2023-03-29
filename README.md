@@ -24,6 +24,7 @@
 
 ## Release History
 
+- 0.4: Started integration w/ my other project: [web-youtube-downloader](https://github.com/vardecab/web-youtube-downloader); new videos will be downloaded to folders named after YouTube's channel name.
 - 0.3: Added colored output in terminal.
 - 0.2: Added Windows and macOS notifications; fixed script not working when URL had whitespaces.
 - 0.1: Initial, fully functioning release.

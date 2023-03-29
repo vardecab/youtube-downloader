@@ -37,7 +37,7 @@ print("Starting the script...")  # status
 
 # --- function to send notification -- #
 
-def sendNotification(kind): # FIX: doesn't work
+def sendNotification(kind): 
     if platform == "darwin":
         pync.notify(f'{kind} downloaded. Enjoy!', title='youtube-downloader', subtitle='',
                     open="", sound="", contentImage="icons/download.png")
@@ -56,9 +56,9 @@ def downloadVideo(videoURL):
 
     # different location for different OSes
     if platform == "win32": # Windows
-        downloadPath = r'C:/Users/x/Videos/TV Shows/Downloaded from YouTube' # download location
+        downloadPath = r'C:/Users/x/Videos/YouTube Downloads' # download location
     # elif platform == "darwin": # macOS 
-    #     downloadPath = r'/Users/q/Downloads/Downloaded from YouTube/' # download location
+    #     downloadPath = r'/Users/q/Downloads/YouTube Downloads/' # download location
 
     #  parameters for the downloader
     optionalParameters = {
@@ -76,7 +76,12 @@ def downloadVideo(videoURL):
         'quiet': True,  # don't throw status messages in the console
 
         # download location + name of the file
-        'outtmpl': downloadPath + r'/%(title)s.%(ext)s',
+        # 'outtmpl': downloadPath + r'/%(title)s.%(ext)s',
+        'outtmpl': downloadPath + r'/%(uploader)s/%(title)s.%(ext)s',
+    
+        # TODO: # download video's thumbnail
+        # 'write_thumbnail': True,   
+        # TODO: when folder doesn't exist then create folder and download channel's profile picture and rename to `folder.jpg`
 
         # SponsorBlock
         'sponsorblock_remove': True,
@@ -94,14 +99,14 @@ def downloadVideo(videoURL):
             # videoInfo = YouTubeDownloader.extract_info(videoURL, download=False) # get info (title, metadata, etc.) about the video without downloading
 
             print(colored("Downloading the video from YouTube...", 'green'))  # status
-            YouTubeDownloader.download(videoURL)  # now download the video
+            YouTubeDownloader.download([videoURL])  # now download the video
             sendNotification('Video') # send notification
             print(colored("Video downloaded. Enjoy!", 'green'))  # status
             # TODO: how to check if downloading or already on disk?
     except:  # Internet down, wrong URL
         # status
         print(colored(f"Can't download the video. Check your internet connection and video's URL ({videoURL}), then try again. Closing...", 'red'))
-        
+    
 # download music
 def downloadMusic(videoURL):
     
@@ -113,7 +118,7 @@ def downloadMusic(videoURL):
     if platform == "win32": # Windows
         downloadPath = r'C:/Users/x/Downloads/' # download location
     # elif platform == "darwin": # macOS 
-        # downloadPath = r'/Users/q/Downloads/Downloaded from YouTube/' # download location
+        # downloadPath = r'/Users/q/Downloads/YouTube Downloads/' # download location
     
     # parameters for the downloader
     optionalParameters = {
@@ -137,8 +142,8 @@ def downloadMusic(videoURL):
         # status
         print(colored(f"Can't download the music. Check your internet connection and video's URL ({videoURL}), then try again. Closing...", 'red'))
             
-# ------ playing with arguments ------ #
-
+# ------ playing with arguments ------ #    
+    
 # get the URL & arguments if we don't have them (likely scenario if launched from .exe vs as a script in Terminal)
 def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call it without a parameter 
     
@@ -180,29 +185,31 @@ def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call 
         
 # ---------- launch and see ---------- #
 
-try: 
-    if len(sys.argv) == 1:
-        print(colored("No video URL found at launch.", 'red'))
-        result = helpTheUser() # we don't have anything so let's call the function and get the URL and arguments 
-    elif len(sys.argv) == 2:
-        print(colored("v/m argument was not passed.", 'red'))
-        result= helpTheUser(sys.argv[1]) # send what we have ie. URL to function and get the rest ie. arguments 
-    elif len(sys.argv) == 3: # we have everything so let's go; 3=2 so 2 arguments, eg. m URL => m for music and URL = YouTube URL; eg. `python youtube-downloader.py m "https://youtube.com/XXXXXX"`
-        # "decode" the arguments
-        if sys.argv[1] == "v": # video
-            downloadVideo((sys.argv[2])) # pass URL from console to function
-        elif sys.argv[1] == "m": # music 
-            downloadMusic((sys.argv[2])) # pass URL from console to function
-except: 
-    print(colored('Something went wrong...', 'red')) # status
-    print(colored('Closing...', 'red')) # status
-    exit() # close the script
+if __name__ == "__main__": # code below only executed when launched directly, code above runs all the time when eg. imported to other .py file
+    
+    try: 
+        if len(sys.argv) == 1:
+            print(colored("No video URL found at launch.", 'red'))
+            result = helpTheUser() # we don't have anything so let's call the function and get the URL and arguments 
+        elif len(sys.argv) == 2:
+            print(colored("v/m argument was not passed.", 'red'))
+            result= helpTheUser(sys.argv[1]) # send what we have ie. URL to function and get the rest ie. arguments 
+        elif len(sys.argv) == 3: # we have everything so let's go; 3=2 so 2 arguments, eg. m URL => m for music and URL = YouTube URL; eg. `python youtube-downloader.py m "https://youtube.com/XXXXXX"`
+            # "decode" the arguments
+            if sys.argv[1] == "v": # video
+                downloadVideo((sys.argv[2])) # pass URL from console to function
+            elif sys.argv[1] == "m": # music 
+                downloadMusic((sys.argv[2])) # pass URL from console to function
+    except: 
+        print(colored('Something went wrong...', 'red')) # status
+        print(colored('Closing...', 'red')) # status
+        exit() # close the script
 
 
-# ----------- fun ends here ---------- #
+    # ----------- fun ends here ---------- #
 
-# ------------- run time ------------- #
+    # ------------- run time ------------- #
 
-endTime = time.time()  # run time end
-totalRunTime = round(endTime-startTime, 2) # round to 0.xx
-print(f"Total script run time: {totalRunTime} seconds. That's {round(totalRunTime/60,2)} minutes.") # status
+    endTime = time.time()  # run time end
+    totalRunTime = round(endTime-startTime, 2) # round to 0.xx
+    print(f"Total script run time: {totalRunTime} seconds. That's {round(totalRunTime/60,2)} minutes.") # status
