@@ -38,14 +38,14 @@ print("Starting the script...")  # status
 
 # --- function to send notification -- #
 
-def sendNotification(kind): # kind = music/video
+def sendNotification(kind, title, channel): # kind = music/video
     if platform == "darwin":
         pync.notify(f'{kind} downloaded. Enjoy!', title='youtube-downloader', subtitle='',
                     open="", sound="", contentImage="icons/download.png")
     elif platform == "win32":
         notification.notify(
             title='youtube-downloader',
-            message=f'{kind} downloaded. Enjoy!',
+            message=f'{title} by {channel} downloaded. Enjoy the {kind}!',
             app_icon='icons/download.ico')
     
 # ----- functions for downloading ---- #
@@ -97,13 +97,18 @@ def downloadVideo(videoURL):
 
     try:
         with yt_dlp.YoutubeDL(optionalParameters) as YouTubeDownloader:
-            # videoInfo = YouTubeDownloader.extract_info(videoURL, download=False) # get info (title, metadata, etc.) about the video without downloading
-
+            
             print(colored("Downloading the video from YouTube...", 'green'))  # status
             YouTubeDownloader.download([videoURL])  # now download the video
-            sendNotification('Video') # send notification
-            print(colored("Video downloaded. Enjoy!", 'green'))  # status
-            # TODO: how to check if downloading or already on disk?
+            
+            videoMetadata = YouTubeDownloader.extract_info(videoURL, download=False) # get the metadata of the video
+            videoTitle = videoMetadata.get('title', 'None') # get the video title
+            if len(videoTitle) > 25: # check if title is long
+                videoTitle = videoTitle[:25] + '...' # truncate to 25 chars so it's not too long + add '...' to indicate the title is longer
+            channelName = videoMetadata.get('uploader', 'None') # get channel name 
+            
+            sendNotification('video', videoTitle, channelName) # send notification
+            print(colored(f"{videoTitle} by {channelName} downloaded. Enjoy the video!", 'green'))  # status
     except:  # Internet down, wrong URL
         # status
         print(colored(f"Can't download the video. Check your internet connection and video's URL ({videoURL}), then try again. Closing...", 'red'))
@@ -135,10 +140,18 @@ def downloadMusic(videoURL):
     }
     try:
         with yt_dlp.YoutubeDL(optionalParameters) as YouTubeDownloader:
+            
             print(colored("Downloading the video from YouTube and then doing some magic to extract the music. It can take a while...", 'green')) # status
             YouTubeDownloader.download(videoURL) # now download the music
-            sendNotification('Music') # send notification
-            print(colored("Music extracted and file saved. Enjoy!", 'green')) # status
+            
+            videoMetadata = YouTubeDownloader.extract_info(videoURL, download=False) # get the metadata of the video
+            videoTitle = videoMetadata.get('title', 'None') # get the video title
+            if len(videoTitle) > 25: # check if title is long
+                videoTitle = videoTitle[:25] + '...' # truncate to 25 chars so it's not too long + add '...' to indicate the title is longer
+            channelName = videoMetadata.get('uploader', 'None') # get channel name 
+            
+            sendNotification('music', videoTitle, channelName) # send notification
+            print(colored(f"{videoTitle} by {channelName} downloaded. Enjoy the music!", 'green')) # status
     except: # Internet down, wrong URL
         # status
         print(colored(f"Can't download the music. Check your internet connection and video's URL ({videoURL}), then try again. Closing...", 'red'))
@@ -203,7 +216,7 @@ if __name__ == "__main__": # code below only executed when launched directly, co
     
     try: 
         if len(sys.argv) == 1:
-            print(colored("No video URL found at launch.", 'red'))
+            print(colored("No video URL argument found at launch.", 'red'))
             result = helpTheUser() # we don't have anything so let's call the function and get the URL and arguments 
         elif len(sys.argv) == 2:
             print(colored("v/m argument was not passed.", 'red'))

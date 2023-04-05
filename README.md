@@ -24,6 +24,7 @@
 
 ## Release History
 
+- 0.6: Added `videoTitle` and `channelName` to notifications.
 - 0.5: Taking video URL from clipboard if there is one.
 - 0.4: Started integration w/ my other project: [web-youtube-downloader](https://github.com/vardecab/web-youtube-downloader); new videos will be downloaded to folders named after YouTube's channel name.
 - 0.3: Added colored output in terminal.
