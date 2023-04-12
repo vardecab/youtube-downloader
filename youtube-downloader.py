@@ -36,8 +36,9 @@ print("Starting the script...")  # status
 
 # ---------- fun begins here --------- #
 
-# --- function to send notification -- #
+# -- function to show notifications -- #
 
+# show notifications
 def sendNotification(kind, title, channel): # kind = music/video
     if platform == "darwin":
         pync.notify(f'{kind} downloaded. Enjoy!', title='youtube-downloader', subtitle='',
@@ -98,17 +99,13 @@ def downloadVideo(videoURL):
     try:
         with yt_dlp.YoutubeDL(optionalParameters) as YouTubeDownloader:
             
-            print(colored("Downloading the video from YouTube...", 'green'))  # status
+            getMetadata(videoURL) # get stuff like video title, channel name
+            
+            print(colored(f"Downloading '{videoTitle}' by {channelName} from YouTube...", 'green'))  # status
             YouTubeDownloader.download([videoURL])  # now download the video
             
-            videoMetadata = YouTubeDownloader.extract_info(videoURL, download=False) # get the metadata of the video
-            videoTitle = videoMetadata.get('title', 'None') # get the video title
-            if len(videoTitle) > 25: # check if title is long
-                videoTitle = videoTitle[:25] + '...' # truncate to 25 chars so it's not too long + add '...' to indicate the title is longer
-            channelName = videoMetadata.get('uploader', 'None') # get channel name 
-            
             sendNotification('video', videoTitle, channelName) # send notification
-            print(colored(f"{videoTitle} by {channelName} downloaded. Enjoy the video!", 'green'))  # status
+            print(colored(f"'{videoTitle}' by {channelName} downloaded. Enjoy the video!", 'green'))  # status
     except:  # Internet down, wrong URL
         # status
         print(colored(f"Can't download the video. Check your internet connection and video's URL ({videoURL}), then try again. Closing...", 'red'))
@@ -129,26 +126,22 @@ def downloadMusic(videoURL):
     # parameters for the downloader
     optionalParameters = {
         'quiet': True, # don't throw status messages in the console
-        'format': 'bestaudio/best',
+        'format': 'bestaudio/best', # download with best audio
         'outtmpl': downloadPath + r'/%(title)s.%(ext)s', # download location + name of the file
         'postprocessors': [{
             # extract music from video
             'key': 'FFmpegExtractAudio', # extract audio from the video file
             'preferredcodec': 'mp3', # codec
-            'preferredquality': '320', # 320 kbps
+            'preferredquality': '320', # 320 kbps quality 
         }],
     }
     try:
         with yt_dlp.YoutubeDL(optionalParameters) as YouTubeDownloader:
             
-            print(colored("Downloading the video from YouTube and then doing some magic to extract the music. It can take a while...", 'green')) # status
-            YouTubeDownloader.download(videoURL) # now download the music
+            getMetadata(videoURL) # get stuff like video title, channel name
             
-            videoMetadata = YouTubeDownloader.extract_info(videoURL, download=False) # get the metadata of the video
-            videoTitle = videoMetadata.get('title', 'None') # get the video title
-            if len(videoTitle) > 25: # check if title is long
-                videoTitle = videoTitle[:25] + '...' # truncate to 25 chars so it's not too long + add '...' to indicate the title is longer
-            channelName = videoMetadata.get('uploader', 'None') # get channel name 
+            print(colored(f"Downloading '{videoTitle}' by {channelName} from YouTube and then doing some magic to extract the music. It can take a while...", 'green')) # status
+            YouTubeDownloader.download(videoURL) # now download the music
             
             sendNotification('music', videoTitle, channelName) # send notification
             print(colored(f"{videoTitle} by {channelName} downloaded. Enjoy the music!", 'green')) # status
@@ -158,7 +151,23 @@ def downloadMusic(videoURL):
             
 # ------ playing with arguments ------ #
 
+# get stuff like video title, channel name
+def getMetadata(videoURL):
+    
+    global videoTitle, channelName # `global` so it can be used anywhere in the code without `return`
+    
+    optionalParameters = {'quiet': True} # don't throw status messages in the console
+    
+    with yt_dlp.YoutubeDL(optionalParameters) as YouTubeDownloader:
+        videoMetadata = YouTubeDownloader.extract_info(videoURL, download=False) # get the metadata of the video
+        videoTitle = videoMetadata.get('title', 'None') # get the video title
+        if len(videoTitle) > 25: # check if title is long
+            videoTitle = f'{videoTitle[:25]}...' # truncate to 25 chars so it's not too long + add '...' to indicate the title is longer
+        channelName = videoMetadata.get('uploader', 'None') # get channel name
+
+# take YouTube URL (if it exists) from user's clipboard
 def takeFromClipboard():    
+    
     clipboardData = pyperclip.paste() # take last item in user's clipboard
 
     if "youtube" in clipboardData or "youtu.be" in clipboardData: # check if user has what we need
@@ -166,7 +175,7 @@ def takeFromClipboard():
     else: # if not
         return 7 # return random number ¯\_(ツ)_/¯
     
-# get the URL & arguments if we don't have them (likely scenario if launched from .exe vs as a script in Terminal)
+# get the URL & arguments from the user if we don't have them (likely scenario if launched from .exe vs as a script in Terminal)
 def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call it without a parameter 
     
     # -------------- get URL ------------- #
@@ -198,11 +207,13 @@ def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call 
     
     # ---------- get parameters ---------- #
     
-    try: 
-        # userChoice = input() # ask user
-        userChoice = inputimeout(colored("Do you want to download the video (v; default after 15 secs) or extract the music (m)?\n", 'blue'), timeout=15) # ask user, give them 15 seconds to decide 
+    try:  
+        getMetadata(videoURL) # get stuff like video title, channel name
+        
+        userChoice = inputimeout(colored(f"Do you want to download '{videoTitle}' by {channelName} (v; default after 15 secs) or extract the music (m)?\n", 'blue'), timeout=15) # ask user, give them 15 seconds to decide 
     except TimeoutOccurred: # time ran out
         userChoice = "v" # default = video
+        
     if userChoice == "v": 
         downloadVideo(videoURL) # download video
     elif userChoice == "m": 
@@ -214,6 +225,7 @@ def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call 
 
 if __name__ == "__main__": # code below only executed when launched directly, code above runs all the time when eg. imported to other .py file
     
+    # launch looking for arguments 
     try: 
         if len(sys.argv) == 1:
             print(colored("No video URL argument found at launch.", 'red'))
@@ -232,10 +244,10 @@ if __name__ == "__main__": # code below only executed when launched directly, co
         print(colored('Closing...', 'red')) # status
         exit() # close the script
 
-    # ----------- fun ends here ---------- #
+# ----------- fun ends here ---------- #
 
-    # ------------- run time ------------- #
+# ------------- run time ------------- #
 
-    endTime = time.time()  # run time end
-    totalRunTime = round(endTime-startTime, 2) # round to 0.xx
-    print(f"Total script run time: {totalRunTime} seconds. That's {round(totalRunTime/60,2)} minutes.") # status
+endTime = time.time()  # run time end
+totalRunTime = round(endTime-startTime, 2) # round to 0.xx
+print(f"Total script run time: {totalRunTime} seconds. That's {round(totalRunTime/60,2)} minutes.") # status
