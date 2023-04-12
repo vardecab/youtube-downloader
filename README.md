@@ -24,7 +24,8 @@
 
 ## Release History
 
-- 0.7: Simplified code by adding `getMetadata` function; when taking URL from user's clipboard show `videoTitle` & `channelName` so user knows what's gonna be downloaded.
+- 0.8: Simplified code by merging `downloadVideo()` & `downloadMusic()` functions into one: `downloadFile()`.
+- 0.7: Simplified code by adding `getMetadata()` function; when taking URL from user's clipboard show `videoTitle` & `channelName` so user knows what's gonna be downloaded.
 - 0.6: Added `videoTitle` and `channelName` to notifications.
 - 0.5: Taking video URL from clipboard if there is one.
 - 0.4: Started integration w/ my other project: [web-youtube-downloader](https://github.com/vardecab/web-youtube-downloader); new videos will be downloaded to folders named after YouTube's channel name.

@@ -49,106 +49,95 @@ def sendNotification(kind, title, channel): # kind = music/video
             message=f'{title} by {channel} downloaded. Enjoy the {kind}!',
             app_icon='icons/download.ico')
     
-# ----- functions for downloading ---- #
+# ----- function for downloading ----- #
 
-# download video
-def downloadVideo(videoURL):
+# download file ¯\_(ツ)_/¯
+def downloadFile(videoURL, kind):
     
     videoURL = videoURL.strip() # remove whitespaces
 
-    # different location for different OSes
-    if platform == "win32": # Windows
-        downloadPath = r'C:/Users/x/Videos/YouTube Downloads' # download location
-    # elif platform == "darwin": # macOS 
-    #     downloadPath = r'/Users/q/Downloads/YouTube Downloads/' # download location
+    # if we want to download a video
+    if kind == 'video':
+        # different location for different OSes
+        if platform == "win32": # Windows
+            downloadPath = r'C:/Users/x/Videos/YouTube Downloads' # download location
+        elif platform == "darwin": # macOS 
+            downloadPath = r'/Users/q/Videos/YouTube Downloads/' # download location
+        
+        #  parameters for the downloader if we're downloading a video
+        optionalParameters = {
 
-    #  parameters for the downloader
-    optionalParameters = {
+            # format: max 1080p; .mp4 instead of default .webm # NOTE: ChatGPT
+            'format': 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/mp4',
 
-        # format: max 1080p; .mp4 instead of default .webm # NOTE: ChatGPT
-        'format': 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/mp4',
+            # download with better speed # NOTE: ChatGPT
+            'external_downloader': 'aria2c',
+            # param definitions ↓
+            'external_downloader_args': ['-x', '16', '-s', '16', '-k', '100M'],
+            # `-s 16`: This option specifies the number of segments to split the download into. A higher number can improve download speed, but may cause the server to block the download. In this case, it is set to 16 segments.
+            # `-k 100M`: This option sets the maximum size of each segment to 100 megabytes (MB). This can also help improve download speed, as the downloader will download smaller chunks of the file at a time.
 
-        # download with better speed # NOTE: ChatGPT
-        'external_downloader': 'aria2c',
-        # param definitions ↓
-        'external_downloader_args': ['-x', '16', '-s', '16', '-k', '100M'],
-        # `-s 16`: This option specifies the number of segments to split the download into. A higher number can improve download speed, but may cause the server to block the download. In this case, it is set to 16 segments.
-        # `-k 100M`: This option sets the maximum size of each segment to 100 megabytes (MB). This can also help improve download speed, as the downloader will download smaller chunks of the file at a time.
+            'quiet': True,  # don't throw status messages in the console
 
-        'quiet': True,  # don't throw status messages in the console
+            # download location + name of the file
+            # 'outtmpl': downloadPath + r'/%(title)s.%(ext)s',
+            'outtmpl': downloadPath + r'/%(uploader)s/%(title)s.%(ext)s',
+        
+            # TODO: # download video's thumbnail
+            # 'write_thumbnail': True,   
+            # TODO: when folder doesn't exist then create folder and download channel's profile picture and rename to `folder.jpg`
 
-        # download location + name of the file
-        # 'outtmpl': downloadPath + r'/%(title)s.%(ext)s',
-        'outtmpl': downloadPath + r'/%(uploader)s/%(title)s.%(ext)s',
+            # SponsorBlock
+            'sponsorblock_remove': True,
+            'postprocessors': [{
+                'key': 'SponsorBlock',
+                'categories': ['sponsor', 'selfpromo', 'interaction'] # segments that have to be removed
+            }, {
+                'key': 'ModifyChapters',
+                'remove_sponsor_segments': ['sponsor', 'selfpromo', 'interaction'] # segments that have to be removed
+            }]
+        }
     
-        # TODO: # download video's thumbnail
-        # 'write_thumbnail': True,   
-        # TODO: when folder doesn't exist then create folder and download channel's profile picture and rename to `folder.jpg`
-
-        # SponsorBlock
-        'sponsorblock_remove': True,
-        'postprocessors': [{
-            'key': 'SponsorBlock',
-            'categories': ['sponsor', 'selfpromo', 'interaction'] # segments that have to be removed
-        }, {
-            'key': 'ModifyChapters',
-            'remove_sponsor_segments': ['sponsor', 'selfpromo', 'interaction'] # segments that have to be removed
-        }]
-    }
+    # if we want to download music (extracted from a video)
+    elif kind == 'music':
+        # different location for different OSes
+        if platform == "win32": # Windows
+            downloadPath = r'C:/Users/x/Downloads/' # download location
+        elif platform == "darwin": # macOS 
+            downloadPath = r'/Users/q/Downloads' # download location
+        
+        # parameters for the downloader if we're downloading music
+        optionalParameters = {
+            'quiet': True, # don't throw status messages in the console
+            'format': 'bestaudio/best', # download with best audio
+            'outtmpl': downloadPath + r'/%(title)s.%(ext)s', # download location + name of the file
+            'postprocessors': [{
+                # extract music from video
+                'key': 'FFmpegExtractAudio', # extract audio from the video file
+                'preferredcodec': 'mp3', # codec
+                'preferredquality': '320', # 320 kbps quality 
+            }],
+        }
 
     try:
-        with yt_dlp.YoutubeDL(optionalParameters) as YouTubeDownloader:
+        with yt_dlp.YoutubeDL(optionalParameters) as YouTubeDownloader: # take custom settings for the downloader (`optionalParameters`) and then download the file 
             
             getMetadata(videoURL) # get stuff like video title, channel name
             
-            print(colored(f"Downloading '{videoTitle}' by {channelName} from YouTube...", 'green'))  # status
-            YouTubeDownloader.download([videoURL])  # now download the video
+            if kind == 'video': # if we want to download a video
+                print(colored(f"Downloading '{videoTitle}' by {channelName} from YouTube...", 'green'))  # status
+            elif kind == 'music': # if we want to download music (extracted from a video)
+                print(colored(f"Downloading '{videoTitle}' by {channelName} from YouTube and then doing some magic to extract the music. It can take a while...", 'green')) # status
+                
+            YouTubeDownloader.download([videoURL])  # now download the file
             
-            sendNotification('video', videoTitle, channelName) # send notification
-            print(colored(f"'{videoTitle}' by {channelName} downloaded. Enjoy the video!", 'green'))  # status
+            sendNotification(kind, videoTitle, channelName) # send notification to user
+            
+            print(colored(f"'{videoTitle}' by {channelName} downloaded. Enjoy the {kind}!", 'green'))  # status
     except:  # Internet down, wrong URL
         # status
-        print(colored(f"Can't download the video. Check your internet connection and video's URL ({videoURL}), then try again. Closing...", 'red'))
+        print(colored(f"Can't download the file. Check your internet connection and video's URL ({videoURL}), then try again. Closing...", 'red'))
     
-# download music
-def downloadMusic(videoURL):
-    
-    # NOTE: ffmpeg (+ffprobe) must be downloaded from https://www.gyan.dev/ffmpeg/builds/ and added to PATH
-    
-    videoURL = videoURL.strip() # remove whitespaces
-    
-    # different location for different OSes
-    if platform == "win32": # Windows
-        downloadPath = r'C:/Users/x/Downloads/' # download location
-    # elif platform == "darwin": # macOS 
-        # downloadPath = r'/Users/q/Downloads/YouTube Downloads/' # download location
-    
-    # parameters for the downloader
-    optionalParameters = {
-        'quiet': True, # don't throw status messages in the console
-        'format': 'bestaudio/best', # download with best audio
-        'outtmpl': downloadPath + r'/%(title)s.%(ext)s', # download location + name of the file
-        'postprocessors': [{
-            # extract music from video
-            'key': 'FFmpegExtractAudio', # extract audio from the video file
-            'preferredcodec': 'mp3', # codec
-            'preferredquality': '320', # 320 kbps quality 
-        }],
-    }
-    try:
-        with yt_dlp.YoutubeDL(optionalParameters) as YouTubeDownloader:
-            
-            getMetadata(videoURL) # get stuff like video title, channel name
-            
-            print(colored(f"Downloading '{videoTitle}' by {channelName} from YouTube and then doing some magic to extract the music. It can take a while...", 'green')) # status
-            YouTubeDownloader.download(videoURL) # now download the music
-            
-            sendNotification('music', videoTitle, channelName) # send notification
-            print(colored(f"{videoTitle} by {channelName} downloaded. Enjoy the music!", 'green')) # status
-    except: # Internet down, wrong URL
-        # status
-        print(colored(f"Can't download the music. Check your internet connection and video's URL ({videoURL}), then try again. Closing...", 'red'))
-            
 # ------ playing with arguments ------ #
 
 # get stuff like video title, channel name
@@ -158,12 +147,14 @@ def getMetadata(videoURL):
     
     optionalParameters = {'quiet': True} # don't throw status messages in the console
     
-    with yt_dlp.YoutubeDL(optionalParameters) as YouTubeDownloader:
-        videoMetadata = YouTubeDownloader.extract_info(videoURL, download=False) # get the metadata of the video
+    with yt_dlp.YoutubeDL(optionalParameters) as YouTubeDownloader: # take custom settings for the downloader (`optionalParameters`) and then use the file 
+        videoMetadata = YouTubeDownloader.extract_info(videoURL, download=False) # get the metadata of the video but don't download the file
         videoTitle = videoMetadata.get('title', 'None') # get the video title
         if len(videoTitle) > 25: # check if title is long
             videoTitle = f'{videoTitle[:25]}...' # truncate to 25 chars so it's not too long + add '...' to indicate the title is longer
         channelName = videoMetadata.get('uploader', 'None') # get channel name
+        
+    # no `return` because we are using global variables  
 
 # take YouTube URL (if it exists) from user's clipboard
 def takeFromClipboard():    
@@ -215,9 +206,9 @@ def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call 
         userChoice = "v" # default = video
         
     if userChoice == "v": 
-        downloadVideo(videoURL) # download video
+        downloadFile(videoURL, 'video') # download video
     elif userChoice == "m": 
-        downloadMusic(videoURL) # download music
+        downloadFile(videoURL, 'music') # download music
     else: 
         exit()
         
@@ -236,9 +227,9 @@ if __name__ == "__main__": # code below only executed when launched directly, co
         elif len(sys.argv) == 3: # we have everything so let's go; 3=2 so 2 arguments, eg. m URL => m for music and URL = YouTube URL; eg. `python youtube-downloader.py m "https://youtube.com/XXXXXX"`
             # "decode" the arguments
             if sys.argv[1] == "v": # video
-                downloadVideo((sys.argv[2])) # pass URL from console to function
+                downloadFile((sys.argv[2])) # pass URL from console to function
             elif sys.argv[1] == "m": # music 
-                downloadMusic((sys.argv[2])) # pass URL from console to function
+                downloadFile((sys.argv[2])) # pass URL from console to function
     except: 
         print(colored('Something went wrong...', 'red')) # status
         print(colored('Closing...', 'red')) # status
