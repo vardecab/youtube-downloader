@@ -1,3 +1,5 @@
 run.bat
 run.exe
 __pycache__
+api/*
+automate/*

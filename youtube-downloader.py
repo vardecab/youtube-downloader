@@ -6,10 +6,8 @@
 
 # core ↓
 import yt_dlp  # download YouTube videos # NOTE: https://github.com/ytdl-org/youtube-dl/issues/30102#issuecomment-943849906
-import sys # take arguments from console
 
-# ----------- notifications ---------- #
-
+# notifications ↓
 from sys import platform  # check platform (Windows/macOS)
 if platform == "darwin":
     import pync  # macOS notifications
@@ -18,9 +16,11 @@ elif platform == 'win32':
 
 # other ↓
 import time  # calculate script's run time
-from inputimeout import inputimeout, TimeoutOccurred # input timeout: https://pypi.org/project/inputimeout/
+from inputimeout import inputimeout, TimeoutOccurred # input timeout
 from termcolor import colored # colored output in terminal 
 import pyperclip # take data from user's clipboard
+from pushbullet import Pushbullet # use Pushbullet API
+import sys # take arguments from console
 
 # certificate problem solution ↓
 # NOTE: fix certificate issue -> https://stackoverflow.com/questions/28282797/feedparser-parse-ssl-certificate-verify-failed
@@ -40,10 +40,10 @@ print("Starting the script...")  # status
 
 # show notifications
 def sendNotification(kind, title, channel): # kind = music/video
-    if platform == "darwin":
+    if platform == "darwin": # if macOS
         pync.notify(f'{kind} downloaded. Enjoy!', title='youtube-downloader', subtitle='',
                     open="", sound="", contentImage="icons/download.png")
-    elif platform == "win32":
+    elif platform == "win32": # if Windows
         notification.notify(
             title='youtube-downloader',
             message=f'{title} by {channel} downloaded. Enjoy the {kind}!',
@@ -82,10 +82,6 @@ def downloadFile(videoURL, kind):
             # download location + name of the file
             # 'outtmpl': downloadPath + r'/%(title)s.%(ext)s',
             'outtmpl': downloadPath + r'/%(uploader)s/%(title)s.%(ext)s',
-        
-            # TODO: # download video's thumbnail
-            # 'write_thumbnail': True,   
-            # TODO: when folder doesn't exist then create folder and download channel's profile picture and rename to `folder.jpg`
 
             # SponsorBlock
             'sponsorblock_remove': True,
@@ -161,10 +157,37 @@ def takeFromClipboard():
     
     clipboardData = pyperclip.paste() # take last item in user's clipboard
 
-    if "youtube" in clipboardData or "youtu.be" in clipboardData: # check if user has what we need
+    if "youtube.com" in clipboardData or "youtu.be" in clipboardData: # check if user has what we need
         return clipboardData # return so we can use it
     else: # if not
         return 7 # return random number ¯\_(ツ)_/¯
+    
+# take URL from a message sent via Pushbullet 
+def takeFromPushbullet(): 
+    
+    # load API key from a .txt file
+    with open('./api/pushbulletAPIkey.txt', 'r') as pushbulletAPIkey:
+        print("Taking Pushbullet API key...") # status
+        pushbulletAPIkey = pushbulletAPIkey.read().strip() # take value of the key as variable
+
+    pushbullet = Pushbullet(pushbulletAPIkey) # initialize a Pushbullet object with API key
+
+    print("Getting latest pushes from the Pushbullet API...") # status
+    pushes = pushbullet.get_pushes(limit=3) # retrieve a dictionary of 3 most recent pushes from the API; without `limit` it takes 25 most recent pushes
+    print("Looking for a YouTube URL...") # status
+    # go through the dictionary
+    for push in pushes:  
+        if 'url' in push:
+            pushURL = push.get('url') # get the URL from the dictionary
+            if pushURL is None: # if there is no URL in the dictionary 
+                print("No YouTube URLs in Pushbullet messages.") # status
+                return 4 # return random number ¿\_(ツ)_/¿
+            elif 'youtube.com' in pushURL or 'youtu.be' in pushURL: # but if there is a YouTube URL in the latest pushes then use it
+                print("Found a YouTube URL!") # status
+                return pushURL # give it back to the main function 
+        else: 
+            print("No YouTube URLs in Pushbullet messages.") # status 
+            return 4 # return random number ¿\_(ツ)_/¿  
     
 # get the URL & arguments from the user if we don't have them (likely scenario if launched from .exe vs as a script in Terminal)
 def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call it without a parameter 
@@ -174,31 +197,40 @@ def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call 
     if videoURL is not None: # if we pass a parameter then we are good 
         videoURL = videoURL
     else: # but if we don't pass a parameter then we need to get it 
-        clipboardData = takeFromClipboard() # let's take what's in clipboard
-        if not clipboardData == 7: # ok, looks like a YouTube URL, let's use it
-            print(colored(f"Taking URL from clipboard: {clipboardData} ", 'green')) # status
-            videoURL = clipboardData # use URL from clipboard as our video
-        else: # no YouTube URL in user's clipboard, let's ask for it
-            print(colored("Couldnt' find YouTube URL in clipboard.", 'red')) # status
-            askForVideoURLprompt = "Paste YouTube video URL: " # ask user for URL
-            videoURL = input(colored(askForVideoURLprompt, 'blue'))
-            
-            counter = 1 # reset the counter
-            # check if URL is a YouTube URL and give user 3 chances to put a correct URL
-            while (
-                "youtube" not in videoURL
-                and "youtu.be" not in videoURL
-                and counter < 3
-            ):
-                videoURL = input(colored("That URL is not a YouTube one. Try again: ", 'red')) # ask user for URL
-                counter += 1 # increase the counter
-            if counter == 4: # if user still can't paste a YouTube URL then close the script
-                print(colored("Duh... Couldn't get the URL, closing...", 'red'))
-                exit()
-    
+        pushbulletData = takeFromPushbullet() # let's take what was sent via Pushbullet
+        if not pushbulletData == 4: # ok, looks like a YouTube URL, let's use it
+            print(colored(f"Taking URL from Pushbullet: {pushbulletData} ", 'green')) # status
+            videoURL = pushbulletData # use URL from Pushbullet as our video
+        else: # if Pushbullet messages are useless then look at the clipboard
+            clipboardData = takeFromClipboard() # let's take what's in clipboard
+            if not clipboardData == 7: # ok, looks like a YouTube URL, let's use it
+                print(colored(f"Taking URL from clipboard: {clipboardData} ", 'green')) # status
+                videoURL = clipboardData # use URL from clipboard as our video
+            else: # no YouTube URL in user's clipboard, let's ask for it
+                print(colored("Couldn't find YouTube URL in clipboard.", 'red')) # status
+                
+                counter = 0 # reset the counter
+                while counter < 3: # give user 3 chances to paste a YouTube URL
+                    try:
+                        videoURL = inputimeout(colored("Paste YouTube video URL: ", 'blue'), timeout=15) # give user 15 seconds to paste a YouTube URL, otherwise close script
+                        if "youtube.com" in videoURL or "youtu.be" in videoURL: # if it's a correct URL skip to the main function
+                            break # continue the script with that URL
+                        else: # invalid URL
+                            print(colored("That URL is not a YouTube one. Try again.", 'red'))
+                            counter += 1 # increase the counter
+                    except TimeoutOccurred: # time
+                        print(colored("Time's up! Closing...", 'red')) # status
+                        quit() # close the script
+
+                if counter == 3: # if user had their 3 chances already
+                    print(colored("Duh... Couldn't get the URL, closing...", 'red')) # status
+                    quit() # close the script
+                else: # success, we have the correct URL
+                    print(colored(f"Got it! The YouTube video URL is: {videoURL}", 'green')) # status
+        
     # ---------- get parameters ---------- #
     
-    try:  
+    try: # `try` in case something goes wrong 
         getMetadata(videoURL) # get stuff like video title, channel name
         
         userChoice = inputimeout(colored(f"Do you want to download '{videoTitle}' by {channelName} (v; default after 15 secs) or extract the music (m)?\n", 'blue'), timeout=15) # ask user, give them 15 seconds to decide 
@@ -209,8 +241,12 @@ def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call 
         downloadFile(videoURL, 'video') # download video
     elif userChoice == "m": 
         downloadFile(videoURL, 'music') # download music
+    elif userChoice == "c" or userChoice == "e": # finish the script
+        print("Bye!") # status
+        sys.exit() # close the script
     else: 
-        exit()
+        print("Bye!") # status
+        sys.exit() # close the script
         
 # ---------- launch and see ---------- #
 

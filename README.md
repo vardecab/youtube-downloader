@@ -24,6 +24,7 @@
 
 ## Release History
 
+- 0.9: Taking video URL from a Pushbullet message; fixed a loop; added an option to terminate the script; fixed `youtube` -> `youtube.com` to avoid issues with paths in clipboard.
 - 0.8: Simplified code by merging `downloadVideo()` & `downloadMusic()` functions into one: `downloadFile()`.
 - 0.7: Simplified code by adding `getMetadata()` function; when taking URL from user's clipboard show `videoTitle` & `channelName` so user knows what's gonna be downloaded.
 - 0.6: Added `videoTitle` and `channelName` to notifications.
@@ -63,6 +64,7 @@ Using [SemVer](http://semver.org/).
 - [termcolor](https://pypi.org/project/termcolor/) to have colors in terminal
 - [inputimeout ](https://pypi.org/project/inputimeout/) to auto-advance without user's input
 - [Flaticon](https://www.flaticon.com) for icons
+- [Pushbullet API](https://www.pushbullet.com)
 
 ## Contributing
 
