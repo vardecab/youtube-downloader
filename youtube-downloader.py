@@ -21,6 +21,7 @@ from termcolor import colored # colored output in terminal
 import pyperclip # take data from user's clipboard
 from pushbullet import Pushbullet # use Pushbullet API
 import sys # take arguments from console
+from itertools import chain # remove list nesting
 
 # certificate problem solution ↓
 # NOTE: fix certificate issue -> https://stackoverflow.com/questions/28282797/feedparser-parse-ssl-certificate-verify-failed
@@ -62,20 +63,11 @@ def checker(videoURL):
     # check if videoURL already in a file, if yes then break and terminate the script, if not continue with the code
     with open('videoURLs.txt', 'r') as readFile:
         print(colored(f"Checking if we already downloaded this video: {videoURL}", 'green')) # status
-        if videoURL not in readFile.read():
-            # # save videoURL in a .txt file
-            # with open('videoURLs.txt', 'a') as readFile:
-            #     print(colored("New URL, great! Saving YouTube URL in a .txt file...", 'green')) # status
-            #     readFile.write(f"{videoURL}\n")
-            return videoURL # URL not in a file, let's use it
-        else: 
-            # print(colored('File already downloaded, enjoy!', 'green')) # status
-            # sendNotification("nothing", 0, 0) # send notification saying we don't have new videos # FIX: plyer throws error
+        if videoURL not in readFile.read(): # can use
+            return 700700 # random status code
+        else: # already downloaded
+            return 100100 # random status code
             
-            # TODO: if check from Pushbullet is positive we should look at clipboard next instead of terminating the script
-            return 100 # random success code
-            # sys.exit() # close the script
-
 # download file ¯\_(ツ)_/¯
 def downloadFile(videoURL, kind):
     
@@ -158,7 +150,7 @@ def downloadFile(videoURL, kind):
             
             # save newly downloaded video's URL in a file so we don't download it in future 
             with open('videoURLs.txt', 'a') as readFile:
-                print(colored("New URL, great! Saving YouTube URL in a .txt file...", 'green')) # status
+                print(colored("New video downloaded, great! Saving YouTube URL in a .txt file...", 'green')) # status
                 readFile.write(f"{videoURL}\n")
                 
     except:  # Internet down, wrong URL
@@ -186,23 +178,25 @@ def getMetadata(videoURL):
 # take YouTube URL (if it exists) from user's clipboard
 def takeFromClipboard():    
     
-    clipboardData = pyperclip.paste() # take last item in user's clipboard
+    clipboardData = pyperclip.paste() # take last copied item from the clipboard
 
     print(colored("Checking the clipboard...", 'green')) # status
     
-    if "youtube.com" in clipboardData or "youtu.be" in clipboardData: # check if user has what we need
+    if "youtube.com" in clipboardData or "youtu.be" in clipboardData: # check if copied item is a YouTube URL
         print(colored("YouTube URL found in the clipboard!", 'green')) # status
-        # checker(clipboardData) # check if we already downloaded that file
-        if checker(clipboardData) == 100:
-            print(colored("Already downloaded! XYZ", 'green')) # status
-        else: 
-            return clipboardData # return so we can use it
-    else: # if not
+        videoURL = clipboardData # change variable name 
+        if checker(videoURL) == 700700: # can use
+            print(colored(f"New video!", 'green')) # status
+            return videoURL 
+        else: # already downloaded
+            print(colored(f"This video is already downloaded.", 'red')) # status
+    else: # no YouTube URL in the clipboard
         print(colored(f"No YouTube URLs in the clipboard.", 'red')) # status
-        return 7 # return random number ¯\_(ツ)_/¯
     
-# take URL from a message sent via Pushbullet 
+# take URLs from messages (pushes) sent via Pushbullet 
 def takeFromPushbullet(): 
+    
+    # ------ get the messages/pushes ----- #
     
     # load API key from a .txt file
     with open('./api/pushbulletAPIkey.txt', 'r') as pushbulletAPIkey:
@@ -212,90 +206,98 @@ def takeFromPushbullet():
     pushbullet = Pushbullet(pushbulletAPIkey) # initialize a Pushbullet object with API key
 
     print(colored(f"Getting latest pushes from the Pushbullet API...", 'green')) # status
-    pushes = pushbullet.get_pushes(limit=5) # retrieve a dictionary of most recent pushes from the API; without `limit` it takes 25 most recent pushes
-    print(colored(f"Looking for a YouTube URL...", 'green')) # status
-    # go through the dictionary
-
-    # TODO — go through all pushes instead of stopping on the latest, ie. if there are 5 pushes and 3 of them contain YouTube link => download function should run on all 3 of these instead of the newest
-    # TODO — add all of the them to a list and then go through the list in the downloader
+    pushLimit = 5 
+    pushes = pushbullet.get_pushes(limit=pushLimit) # retrieve a dictionary of most recent pushes from the API; without `limit` it takes 25 most recent pushes
+    
+    print(colored(f"Looking for a YouTube URL in the last {pushLimit} pushes...", 'green')) # status
+    
+    # ----- go through the dictionary ---- #
+    
+    pushbulletURLs = [] # create a list to store URLs
+    
     for push in pushes:  
         if 'url' in push:
             pushURL = push.get('url') # get the URL from the dictionary
             if pushURL is None: # if there is no URL in the dictionary 
-                print(colored("No YouTube URLs in latest Pushbullet messages.", 'red'))
-                return 4 # return random number ¿\_(ツ)_/¿
+                print(colored("No YouTube URLs in latest Pushbullet messages.", 'red')) # status
             elif 'youtube.com' in pushURL or 'youtu.be' in pushURL: # but if there is a YouTube URL in the latest pushes then use it
                 print(colored("Found a YouTube URL!", 'green')) # status
-                # checker(pushURL) # check if we already downloaded that file
+                pushbulletURLs.append(pushURL) # add URL to the list
+        
+    # ---- check if already downloaded --- #
+    
+    pushbulletURLsChecked = [] # new list for checked URLs
+    if len(pushbulletURLs) != 0: # if not empty
+        for videoURL in pushbulletURLs:
+            if checker(videoURL) == 700700: # if this link hasn't been downloaded before
+                print(colored(f"New video!", 'green')) # status
+                pushbulletURLsChecked.append(videoURL) # add to the list
+            else: # already downloaded
+                print(colored(f"This video is already downloaded.", 'red')) # status
+    else: # no good URLs
+        print(colored(f"No YouTube URLs in Pushbullet.", 'red')) # status
                 
-                # TODO: if 100 then move to clipboard, if false download
-                if checker(pushURL) == 100: 
-                    print(colored("Already downloaded! XYZ", 'green')) # status
-                else:
-                    return pushURL # give it back to the main function 
-                    # takeFromClipboard()
-        else: 
-            print(colored("No YouTube URLs in latest Pushbullet messages.", 'red'))
-            return 4 # return random number ¿\_(ツ)_/¿  
+    return pushbulletURLsChecked
     
 # get the URL & arguments from the user if we don't have them (likely scenario if launched from .exe vs as a script in Terminal)
 def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call it without a parameter 
     
-    # -------------- get URL ------------- #
+    # ------ build list and download ----- #
     
-    if videoURL is not None: # if we pass a parameter then we are good 
-        videoURL = videoURL
-    else: # but if we don't pass a parameter then we need to get it 
-        clipboardData = takeFromClipboard() # let's take what's in clipboard
-        if not clipboardData == 7: # ok, looks like a YouTube URL, let's use it
-            print(colored(f"Taking URL from clipboard: {clipboardData} ", 'green')) # status
-            videoURL = clipboardData # use URL from clipboard as our video
-        else: # no YouTube URL in user's clipboard, let's ask for it
-            # print(colored("Couldn't find YouTube URL in clipboard.", 'red')) # status
-            pushbulletData = takeFromPushbullet() # let's take what was sent via Pushbullet
-            if (not pushbulletData == 4) and (pushbulletData != None): # ok, looks like a YouTube URL, let's use it
-                print(colored(f"Taking URL from Pushbullet: {pushbulletData} ", 'green')) # status
-                videoURL = pushbulletData # use URL from Pushbullet as our video
-            else: # if Pushbullet messages are useless then look at the clipboard
-                
-                counter = 0 # reset the counter
-                while counter < 3: # give user 3 chances to paste a YouTube URL
-                    try:
-                        videoURL = inputimeout(colored("Paste YouTube video URL: ", 'blue'), timeout=15) # give user 15 seconds to paste a YouTube URL, otherwise close script
-                        if "youtube.com" in videoURL or "youtu.be" in videoURL: # if it's a correct URL skip to the main function
-                            break # continue the script with that URL
-                        else: # invalid URL
-                            print(colored("That URL is not a YouTube one. Try again.", 'red'))
-                            counter += 1 # increase the counter
-                    except TimeoutOccurred: # time
-                        print(colored("Time's up! Closing...", 'red')) # status
-                        quit() # close the script
-
-                if counter == 3: # if user had their 3 chances already
-                    print(colored("Duh... Couldn't get the URL, closing...", 'red')) # status
-                    quit() # close the script
-                else: # success, we have the correct URL
-                    print(colored(f"Got it! The YouTube video URL is: {videoURL}", 'green')) # status
+    URLs = [] # create a new list to store URLs
+    
+    URLs.append(takeFromPushbullet()) # add URLs from Pushbullet
+    URLs = list(chain(*URLs)) # remove nested list from Pushbullet
+    
+    clipboardData = takeFromClipboard()
+    if clipboardData is not None: 
+        URLs.append(clipboardData) # add URLs from the clipboard
         
+    # print(f"All the URLs: {URLs}") # debug
+    
+    # - ask for a URL if we other failed - #
+    
+    if len(URLs) == 0: # if empty
+        counter = 0 # reset the counter
+        while counter < 3: # give user 3 chances to paste a YouTube URL
+            try:
+                videoURL = inputimeout(colored("Paste YouTube video URL: ", 'blue'), timeout=15) # give user 15 seconds to paste a YouTube URL, otherwise close script
+                if "youtube.com" in videoURL or "youtu.be" in videoURL: # if it's a correct URL skip to the main function
+                    break # continue the script with that URL
+                else: # invalid URL
+                    print(colored("That URL is not a YouTube one. Try again.", 'red'))
+                    counter += 1 # increase the counter
+            except TimeoutOccurred: # time
+                print(colored("Time's up! Closing...", 'red')) # status
+                quit() # close the script
+
+        if counter == 3: # if user had their 3 chances already
+            print(colored("Duh... Couldn't get the URL, closing...", 'red')) # status
+            quit() # close the script
+        else: # success, we have the correct URL
+            print(colored(f"Got it! The YouTube video URL is: {videoURL}", 'green')) # status
+
     # ---------- get parameters ---------- #
     
-    try: # `try` in case something goes wrong 
-        getMetadata(videoURL) # get stuff like video title, channel name
-        
-        userChoice = inputimeout(colored(f"Do you want to download '{videoTitle}' by {channelName} (v; default after 15 secs) or extract the music (m)?\n", 'blue'), timeout=15) # ask user, give them 15 seconds to decide 
-    except TimeoutOccurred: # time ran out
-        userChoice = "v" # default = video
-        
-    if userChoice == "v": 
-        downloadFile(videoURL, 'video') # download video
-    elif userChoice == "m": 
-        downloadFile(videoURL, 'music') # download music
-    elif userChoice == "c" or userChoice == "e": # finish the script
-        print("Ok, bye!") # status
-        sys.exit() # close the script
-    else: 
-        print("Ok, bye!") # status
-        sys.exit() # close the script
+    else: # if we have something nice in URLs list
+        for videoURL in URLs:
+            try: # `try` in case something goes wrong 
+                getMetadata(videoURL) # get stuff like video title, channel name
+                
+                userChoice = inputimeout(colored(f"Do you want to download '{videoTitle}' by {channelName} (v; default after 15 secs) or extract the music (m)?\n", 'blue'), timeout=15) # ask user, give them 15 seconds to decide 
+            except TimeoutOccurred: # time ran out
+                userChoice = "v" # default = video
+                
+            if userChoice == "v": 
+                downloadFile(videoURL, 'video') # download video
+            elif userChoice == "m": 
+                downloadFile(videoURL, 'music') # download music
+            elif userChoice == "c" or userChoice == "e": # finish the script
+                print("Ok, bye!") # status
+                sys.exit() # close the script
+            else: 
+                print("Ok, bye!") # status
+                sys.exit() # close the script
         
 # ---------- launch and see ---------- #
 
@@ -315,6 +317,7 @@ if __name__ == "__main__": # code below only executed when launched directly, co
             downloadFile((sys.argv[2])) # pass URL from console to function
         elif sys.argv[1] == "m": # music 
             downloadFile((sys.argv[2])) # pass URL from console to function
+            
 # ----------- fun ends here ---------- #
 
 # ------------- run time ------------- #
