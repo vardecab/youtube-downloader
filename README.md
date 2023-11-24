@@ -24,6 +24,7 @@
 
 ## Release History
 
+- 0.10.1: Removed `nothing` notification.
 - 0.10: Added checks to see if video was already downloaded; added new notification type if there is nothing to download.
 - 0.9: Taking video URL from a Pushbullet message; fixed a loop; added an option to terminate the script; fixed `youtube` -> `youtube.com` to avoid issues with paths in clipboard.
 - 0.8: Simplified code by merging `downloadVideo()` & `downloadMusic()` functions into one: `downloadFile()`.

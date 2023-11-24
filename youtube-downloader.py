@@ -40,33 +40,21 @@ print("Starting the script...")  # status
 
 # show notifications
 def sendNotification(kind, title, channel): # kind = music/video
-    try: 
-        if kind == 'nothing':
-        # TODO: remove entirely? 
-            if platform == "win32": # if Windows
-                notification.notify(
-                    title='youtube-downloader',
-                    message=f'{kind.capitalize()} new to download.',
-                    # app_icon='icons/no_updates.ico'
-                    app_icon=None,
-                    app_name=None)
-    # TODO: macOS
-        else:
-            if platform == "darwin": # if macOS
-                pync.notify(f'{kind} downloaded. Enjoy!', title='youtube-downloader', subtitle='',
-                            open="", sound="", contentImage="icons/download.png")
-            elif platform == "win32": # if Windows
-                notification.notify(
-                    title='youtube-downloader',
-                    message=f'{title} by {channel} downloaded. Enjoy the {kind}!',
-                    app_icon='icons/download.ico')
+    try:  # TODO: test on macOS
+        if platform == "darwin": # if macOS
+            pync.notify(f'{kind} downloaded. Enjoy!', title='youtube-downloader', subtitle='',
+                        open="", sound="", contentImage="icons/download.png")
+        elif platform == "win32": # if Windows
+            notification.notify(
+                title='youtube-downloader',
+                message=f'{title} by {channel} downloaded. Enjoy the {kind}!',
+                app_icon='icons/download.ico')
     except: 
-        print("Error in notifications.") # status
+        print("Error in notifications!") # status
         
 # ----- function for downloading ----- #
 
 # check if we already downloaded that file
-# TODO: if check from Pushbullet is positive we should look at clipboard next instead of terminating the script
 def checker(videoURL):
     
     videoURL = videoURL.strip() # remove whitespaces
@@ -281,7 +269,6 @@ def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call 
                             counter += 1 # increase the counter
                     except TimeoutOccurred: # time
                         print(colored("Time's up! Closing...", 'red')) # status
-                        # sendNotification("nothing", 0, 0) # send notification saying we don't have new videos # FIX: plyer throws error
                         quit() # close the script
 
                 if counter == 3: # if user had their 3 chances already
