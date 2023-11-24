@@ -3,3 +3,6 @@ run.exe
 __pycache__
 api/*
 automate/*
+debug.log
+_old
+videoURLs.txt
