@@ -55,6 +55,12 @@ def sendNotification(kind, title, channel): # kind = music/video
         
 # ----- function for downloading ----- #
 
+# save video's URL in a file so we don't download it in future 
+def saveURLtoFile(videoURL):
+    with open('videoURLs.txt', 'a') as readFile:
+        print(colored("Saving YouTube URL in a .txt file...", 'green')) # status
+        readFile.write(f"{videoURL}\n")
+
 # check if we already downloaded that file
 def checker(videoURL):
     
@@ -147,11 +153,6 @@ def downloadFile(videoURL, kind):
             sendNotification(kind, videoTitle, channelName) # send notification to user
             
             print(colored(f"'{videoTitle}' by {channelName} downloaded. Enjoy the {kind}!", 'green'))  # status
-            
-            # save newly downloaded video's URL in a file so we don't download it in future 
-            with open('videoURLs.txt', 'a') as readFile:
-                print(colored("New video downloaded, great! Saving YouTube URL in a .txt file...", 'green')) # status
-                readFile.write(f"{videoURL}\n")
                 
     except:  # Internet down, wrong URL
         # status
@@ -284,7 +285,7 @@ def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call 
             try: # `try` in case something goes wrong 
                 getMetadata(videoURL) # get stuff like video title, channel name
                 
-                userChoice = inputimeout(colored(f"Do you want to download '{videoTitle}' by {channelName} (v; default after 15 secs) or extract the music (m)?\n", 'blue'), timeout=15) # ask user, give them 15 seconds to decide 
+                userChoice = inputimeout(colored(f"Do you want to download '{videoTitle}' by {channelName} (v; default after 15 secs), extract the music (m), skip (x) or exit (e)?\n", 'blue'), timeout=15) # ask user, give them 15 seconds to decide 
             except TimeoutOccurred: # time ran out
                 userChoice = "v" # default = video
                 
@@ -292,11 +293,14 @@ def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call 
                 downloadFile(videoURL, 'video') # download video
             elif userChoice == "m": 
                 downloadFile(videoURL, 'music') # download music
+            elif userChoice == "x" or userChoice == "s": # skip
+                print("Skipping...")
+                saveURLtoFile(videoURL) # save video URL to file so it doesn't get downloaded on the next run
             elif userChoice == "c" or userChoice == "e": # finish the script
                 print("Ok, bye!") # status
                 sys.exit() # close the script
             else: 
-                print("Ok, bye!") # status
+                print("Unsupported command, bye!") # status
                 sys.exit() # close the script
         
 # ---------- launch and see ---------- #
