@@ -4,7 +4,8 @@
 <br>
 ![](https://img.shields.io/badge/platform-Windows-blue)
 
->Experimenting a bit with downloading videos and music from YouTube.
+<!-- >Experimenting a bit with downloading videos and music from YouTube. -->
+>Experimenting a bit with downloading videos and music from YouTube. On demand or automatically using URL from clipboard or Pushbullet.
 
 <!-- ## Screenshots -->
 
