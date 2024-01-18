@@ -153,6 +153,8 @@ def downloadFile(videoURL, kind):
             sendNotification(kind, videoTitle, channelName) # send notification to user
             
             print(colored(f"'{videoTitle}' by {channelName} downloaded. Enjoy the {kind}!", 'green'))  # status
+            
+            saveURLtoFile(videoURL) # save video URL to file so it doesn't get downloaded on the next run
                 
     except:  # Internet down, wrong URL
         # status
