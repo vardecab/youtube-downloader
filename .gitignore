@@ -6,3 +6,4 @@ automate/*
 debug.log
 _old
 videoURLs.txt
+.ds_store
