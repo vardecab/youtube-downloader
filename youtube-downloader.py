@@ -85,7 +85,7 @@ def downloadFile(videoURL, kind):
         if platform == "win32": # Windows
             downloadPath = r'C:/Users/x/Videos/YouTube Downloads' # download location
         elif platform == "darwin": # macOS 
-            downloadPath = r'/Users/q/Videos/YouTube Downloads/' # download location
+            downloadPath = r'/Users/q/Movies/YouTube Downloads' # download location
         
         #  parameters for the downloader if we're downloading a video
         optionalParameters = {
@@ -209,7 +209,7 @@ def takeFromPushbullet():
     pushbullet = Pushbullet(pushbulletAPIkey) # initialize a Pushbullet object with API key
 
     print(colored(f"Getting latest pushes from the Pushbullet API...", 'green')) # status
-    pushLimit = 5 
+    pushLimit = 10 
     pushes = pushbullet.get_pushes(limit=pushLimit) # retrieve a dictionary of most recent pushes from the API; without `limit` it takes 25 most recent pushes
     
     print(colored(f"Looking for a YouTube URL in the last {pushLimit} pushes...", 'green')) # status
@@ -279,6 +279,7 @@ def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call 
             quit() # close the script
         else: # success, we have the correct URL
             print(colored(f"Got it! The YouTube video URL is: {videoURL}", 'green')) # status
+            # FIX: doesn't download anything
 
     # ---------- get parameters ---------- #
     
