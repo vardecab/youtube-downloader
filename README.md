@@ -25,6 +25,7 @@
 
 ## Release History
 
+- 0.14: Added Raindrop, fixed macOS notification, fixed user input.
 - 0.13: Increased number of Pushbullet messages to check from 5 -> 10.
 - 0.12.1: Fix for not saving URL in local file after downloading.
 - 0.12: Added option to skip downloading but saving URL in the file.

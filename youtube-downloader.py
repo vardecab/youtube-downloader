@@ -7,6 +7,11 @@
 # core ↓
 import yt_dlp  # download YouTube videos # NOTE: https://github.com/ytdl-org/youtube-dl/issues/30102#issuecomment-943849906
 
+# integrations ↓
+import pyperclip # take data from user's clipboard
+from pushbullet import Pushbullet # use Pushbullet API
+from raindropiopy import API, Collection, CollectionRef, Raindrop # use Raindrop API
+
 # notifications ↓
 from sys import platform  # check platform (Windows/macOS)
 if platform == "darwin":
@@ -18,8 +23,6 @@ elif platform == 'win32':
 import time  # calculate script's run time
 from inputimeout import inputimeout, TimeoutOccurred # input timeout
 from termcolor import colored # colored output in terminal 
-import pyperclip # take data from user's clipboard
-from pushbullet import Pushbullet # use Pushbullet API
 import sys # take arguments from console
 from itertools import chain # remove list nesting
 
@@ -37,14 +40,14 @@ print("Starting the script...")  # status
 
 # ---------- fun begins here --------- #
 
-# -- function to show notifications -- #
+# ---------- other functions --------- #
 
 # show notifications
 def sendNotification(kind, title, channel): # kind = music/video
-    try:  # TODO: test on macOS
+    try: 
         if platform == "darwin": # if macOS
-            pync.notify(f'{kind} downloaded. Enjoy!', title='youtube-downloader', subtitle='',
-                        open="", sound="", contentImage="icons/download.png")
+            iconDownload = "icons/download.png" # use like this, direct doesn't work for some reason
+            pync.notify(f'{title} by {channel} downloaded. Enjoy the {kind}!', title='youtube-downloader', contentImage=iconDownload)
         elif platform == "win32": # if Windows
             notification.notify(
                 title='youtube-downloader',
@@ -52,6 +55,16 @@ def sendNotification(kind, title, channel): # kind = music/video
                 app_icon='icons/download.ico')
     except: 
         print("Error in notifications!") # status
+
+# remove nestings in lists
+def listFlatter(list):
+    URLs = [] # create a new list
+    for item in list: # iterate through the list
+        if isinstance(item, list):
+            URLs.extend(listFlatter(item)) 
+        else:
+            URLs.append(item)
+    return URLs
         
 # ----- function for downloading ----- #
 
@@ -178,6 +191,8 @@ def getMetadata(videoURL):
         
     # no `return` because we are using global variables  
 
+# ----- get links from sources/platforms ----- #
+
 # take YouTube URL (if it exists) from user's clipboard
 def takeFromClipboard():    
     
@@ -202,11 +217,11 @@ def takeFromPushbullet():
     # ------ get the messages/pushes ----- #
     
     # load API key from a .txt file
-    with open('./api/pushbulletAPIkey.txt', 'r') as pushbulletAPIkey:
+    with open('./api/PushbulletAPIkey.txt', 'r') as PushbulletAPIkey:
         print(colored(f"Taking Pushbullet API key...", 'green')) # status
-        pushbulletAPIkey = pushbulletAPIkey.read().strip() # take value of the key as variable
+        PushbulletAPIkey = PushbulletAPIkey.read().strip() # take value of the key as variable
 
-    pushbullet = Pushbullet(pushbulletAPIkey) # initialize a Pushbullet object with API key
+    pushbullet = Pushbullet(PushbulletAPIkey) # initialize a Pushbullet object with API key
 
     print(colored(f"Getting latest pushes from the Pushbullet API...", 'green')) # status
     pushLimit = 10 
@@ -216,7 +231,7 @@ def takeFromPushbullet():
     
     # ----- go through the dictionary ---- #
     
-    pushbulletURLs = [] # create a list to store URLs
+    PushbulletURLs = [] # create a list to store URLs
     
     for push in pushes:  
         if 'url' in push:
@@ -225,42 +240,91 @@ def takeFromPushbullet():
                 print(colored("No YouTube URLs in latest Pushbullet messages.", 'red')) # status
             elif 'youtube.com' in pushURL or 'youtu.be' in pushURL: # but if there is a YouTube URL in the latest pushes then use it
                 print(colored("Found a YouTube URL!", 'green')) # status
-                pushbulletURLs.append(pushURL) # add URL to the list
+                PushbulletURLs.append(pushURL) # add URL to the list
         
     # ---- check if already downloaded --- #
     
-    pushbulletURLsChecked = [] # new list for checked URLs
-    if len(pushbulletURLs) != 0: # if not empty
-        for videoURL in pushbulletURLs:
+    PushbulletURLsChecked = [] # new list for checked URLs
+    if len(PushbulletURLs) != 0: # if not empty
+        for videoURL in PushbulletURLs:
             if checker(videoURL) == 700700: # if this link hasn't been downloaded before
                 print(colored(f"New video!", 'green')) # status
-                pushbulletURLsChecked.append(videoURL) # add to the list
+                PushbulletURLsChecked.append(videoURL) # add to the list
             else: # already downloaded
                 print(colored(f"This video is already downloaded.", 'red')) # status
     else: # no good URLs
         print(colored(f"No YouTube URLs in Pushbullet.", 'red')) # status
                 
-    return pushbulletURLsChecked
+    return PushbulletURLsChecked
+    
+# take URLs from bookmarks in Raindrop (Unsorted collection)
+def takeFromRaindrop():
+    
+    # load API key from a .txt file
+    with open('./api/RaindropAPIkey.txt', 'r') as RaindropAPIkey:
+        print(colored(f"Taking Raindrop API key...", 'green')) # status
+        RaindropAPIkey = RaindropAPIkey.read().strip() # take value of the key as variable
+    
+    # look for bookmarks with YouTube videos to download
+    with API(RaindropAPIkey) as RaindropAPI:
+        print(colored(f"Looking for Raindrop bookmarks to download...", 'green')) # status
+        
+        RaindropURLs = [] # create a new list
+        
+        for item in Raindrop.search(RaindropAPI, collection=CollectionRef.Unsorted): # check bookmarks in Unsorted collection
+            if ('youtube' in item.link or 'youtu.be' in item.link): # look for YouTube links
+                print(colored("Found a YouTube URL!", 'green')) # status
+                RaindropURLs.append(item.link) # add to list
+            else:
+                print(colored("No YouTube URLs in Raindrop.", 'red')) # status
+
+        RaindropURLsCleaned = [str(url) for url in RaindropURLs] # clean the list from unnecessary characters 
+    
+        # ---- check if already downloaded --- #
+    
+        RaindropURLsChecked = [] # create a new list 
+        if len(RaindropURLsCleaned) != 0: # if not empty
+            for videoURL in RaindropURLsCleaned:
+                if checker(videoURL) == 700700: # if this link hasn't been downloaded before
+                    print(colored(f"New video!", 'green')) # status
+                    RaindropURLsChecked.append(videoURL) # add to the list
+                else: # already downloaded
+                    print(colored(f"This video is already downloaded.", 'red')) # status
+        else: # no good URLs
+            print(colored(f"No YouTube URLs in Raindrop.", 'red')) # status
+                    
+        # return RaindropURLsChecked
+        return RaindropURLsChecked
     
 # get the URL & arguments from the user if we don't have them (likely scenario if launched from .exe vs as a script in Terminal)
 def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call it without a parameter 
     
     # ------ build list and download ----- #
     
-    URLs = [] # create a new list to store URLs
+    URLsList = [] # create a new list to store URLs
     
-    URLs.append(takeFromPushbullet()) # add URLs from Pushbullet
-    URLs = list(chain(*URLs)) # remove nested list from Pushbullet
+    URLsList.append(takeFromPushbullet()) # add URLs from Pushbullet
+    URLsList = list(chain(*URLsList)) # remove nested list from Pushbullet
+    
+    URLsList.append(takeFromRaindrop())
     
     clipboardData = takeFromClipboard()
     if clipboardData is not None: 
-        URLs.append(clipboardData) # add URLs from the clipboard
+        URLsList.append(clipboardData) # add URLs from the clipboard
         
-    # print(f"All the URLs: {URLs}") # debug
-    
-    # - ask for a URL if we other failed - #
-    
-    if len(URLs) == 0: # if empty
+    # remove nestings & empty lists from the master list
+    print(URLsList) # debug
+    print(len(URLsList)) # debug
+    URLsList = list(filter(None, URLsList)) # remove empty lists
+    print(URLsList) # debug
+    print(len(URLsList)) # debug
+    URLsList = [item for sublist in URLsList for item in (sublist if isinstance(sublist, list) and len(sublist) > 0 else [sublist])] # remove nestings
+
+    URLs = URLsList
+        
+    # -------- ask user for a link ------- #
+
+    if len(URLs) <= 0: # if empty -> ask user
         counter = 0 # reset the counter
         while counter < 3: # give user 3 chances to paste a YouTube URL
             try:
@@ -272,6 +336,9 @@ def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call 
                     counter += 1 # increase the counter
             except TimeoutOccurred: # time
                 print(colored("Time's up! Closing...", 'red')) # status
+                if platform == "darwin": # if macOS
+                    # iconDownload = "icons/download.png" # use like this, direct doesn't work for some reason
+                    pync.notify(f'Nothing downloaded.', title='youtube-downloader', contentImage="") # debug
                 quit() # close the script
 
         if counter == 3: # if user had their 3 chances already
@@ -279,13 +346,14 @@ def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call 
             quit() # close the script
         else: # success, we have the correct URL
             print(colored(f"Got it! The YouTube video URL is: {videoURL}", 'green')) # status
-            # FIX: doesn't download anything
+            downloadFile(videoURL, "video") # assuming it's a video; no better idea now
+            # TODO ^
 
     # ---------- get parameters ---------- #
     
-    else: # if we have something nice in URLs list
+    else: # if we have something nice in URLs list -> use it to download files 
         for videoURL in URLs:
-            try: # `try` in case something goes wrong 
+            try: # `try` in case something goes wrong
                 getMetadata(videoURL) # get stuff like video title, channel name
                 
                 userChoice = inputimeout(colored(f"Do you want to download '{videoTitle}' by {channelName} (v; default after 15 secs), extract the music (m), skip (x) or exit (e)?\n", 'blue'), timeout=15) # ask user, give them 15 seconds to decide 
