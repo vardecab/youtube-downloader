@@ -313,11 +313,11 @@ def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call 
         URLsList.append(clipboardData) # add URLs from the clipboard
         
     # remove nestings & empty lists from the master list
-    print(URLsList) # debug
-    print(len(URLsList)) # debug
+    # print(URLsList) # debug
+    # print(len(URLsList)) # debug
     URLsList = list(filter(None, URLsList)) # remove empty lists
-    print(URLsList) # debug
-    print(len(URLsList)) # debug
+    # print(URLsList) # debug
+    # print(len(URLsList)) # debug
     URLsList = [item for sublist in URLsList for item in (sublist if isinstance(sublist, list) and len(sublist) > 0 else [sublist])] # remove nestings
 
     URLs = URLsList
@@ -338,7 +338,7 @@ def helpTheUser(videoURL=None): # make a default so it doesn't crash if we call 
                 print(colored("Time's up! Closing...", 'red')) # status
                 if platform == "darwin": # if macOS
                     # iconDownload = "icons/download.png" # use like this, direct doesn't work for some reason
-                    pync.notify(f'Nothing downloaded.', title='youtube-downloader', contentImage="") # debug
+                    pync.notify(f'Nothing new to download.', title='youtube-downloader', contentImage="") # debug
                 quit() # close the script
 
         if counter == 3: # if user had their 3 chances already
